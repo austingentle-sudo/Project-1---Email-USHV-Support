@@ -293,7 +293,7 @@
 
 <script>
 // ── CONFIG — only one thing to fill in ──────────────────────────────────────
-const GMAIL_CLIENT_ID = '857582473710-sr04tam35m2l18ihuhnimo25l324j41q.apps.googleusercontent.com';
+const GMAIL_CLIENT_ID = 'YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
@@ -327,7 +327,8 @@ async function lookupNPI() {
   showStatus('status-npi', 'info', 'Querying the NPI Registry…');
 
   try {
-    const url = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&enumeration_type=&taxonomy_description=&name_purpose=&first_name=&use_first_name_alias=&last_name=&organization_name=&address_purpose=&city=&state=&postal_code=&country_code=&limit=1&skip=&pretty=&version=2.1`;
+    const npiApiUrl = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&enumeration_type=&taxonomy_description=&name_purpose=&first_name=&use_first_name_alias=&last_name=&organization_name=&address_purpose=&city=&state=&postal_code=&country_code=&limit=1&skip=&pretty=&version=2.1`;
+    const url = `https://corsproxy.io/?url=${encodeURIComponent(npiApiUrl)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Registry unreachable');
     const data = await res.json();
