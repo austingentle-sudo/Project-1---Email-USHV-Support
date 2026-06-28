@@ -293,7 +293,7 @@
 
 <script>
 // ── CONFIG — only one thing to fill in ──────────────────────────────────────
-const GMAIL_CLIENT_ID = 'YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE';
+const GMAIL_CLIENT_ID = '857582473710-sr04tam35m2l18ihuhnimo25l324j41q.apps.googleusercontent.com';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
