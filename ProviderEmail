@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USHV Provider Request Tool</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e2e0d9;
+    --border-strong: #c8c5bc;
+    --text: #1a1917;
+    --text-secondary: #6b6860;
+    --text-muted: #a09d97;
+    --accent: #1a56a0;
+    --accent-hover: #154a8e;
+    --accent-bg: #eef3fb;
+    --success: #1a6b3a;
+    --success-bg: #edf7f2;
+    --danger: #a01a1a;
+    --danger-bg: #fdf0f0;
+    --radius: 8px;
+    --radius-lg: 14px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+
+  header { width: 100%; max-width: 580px; margin-bottom: 2rem; }
+
+  .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 18px; height: 18px; fill: white; }
+
+  h1 { font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+  .subtitle { font-size: 13px; color: var(--text-muted); margin-left: 42px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    width: 100%; max-width: 580px;
+    margin-bottom: 1rem;
+    transition: opacity 0.2s;
+  }
+
+  .card.locked { opacity: 0.45; pointer-events: none; }
+
+  .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent-bg); color: var(--accent);
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-num.done { background: var(--success-bg); color: var(--success); }
+
+  .step-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .step-desc { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  .field-group { margin-bottom: 12px; }
+
+  label {
+    display: block; font-size: 12px; font-weight: 500;
+    color: var(--text-secondary); margin-bottom: 5px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  input[type="text"], textarea {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: 14px; font-family: var(--font);
+    color: var(--text); background: var(--bg);
+    transition: border-color 0.15s; outline: none;
+  }
+  input[type="text"]:focus, textarea:focus { border-color: var(--accent); background: white; }
+
+  .npi-row { display: flex; gap: 8px; align-items: flex-end; }
+  .npi-row input { flex: 1; }
+
+  textarea {
+    resize: vertical; min-height: 175px;
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.7;
+  }
+
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; font-family: var(--font);
+    cursor: pointer; border: none;
+    transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border-strong); }
+  .btn-secondary:hover:not(:disabled) { background: var(--bg); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover:not(:disabled) { background: #155c30; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 1.25rem; flex-wrap: wrap; }
+
+  .status {
+    font-size: 13px; padding: 8px 12px;
+    border-radius: var(--radius); margin-top: 10px;
+    display: none; align-items: center; gap: 8px; line-height: 1.5;
+  }
+  .status.show { display: flex; }
+  .status.info { background: var(--accent-bg); color: var(--accent); }
+  .status.error { background: var(--danger-bg); color: var(--danger); }
+  .status.success { background: var(--success-bg); color: var(--success); }
+
+  .spinner {
+    width: 13px; height: 13px; flex-shrink: 0;
+    border: 2px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+
+  .email-meta { display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; font-size: 13px; }
+  .email-meta-label { color: var(--text-muted); min-width: 52px; }
+  .email-meta-val { color: var(--text); font-weight: 500; }
+
+  .oauth-note {
+    font-size: 12px; color: var(--text-muted);
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 12px;
+    margin-top: 10px; line-height: 1.6;
+  }
+
+  footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+  @media (max-width: 480px) {
+    .fields-grid { grid-template-columns: 1fr; }
+    body { padding: 1rem 0.75rem; }
+    .npi-row { flex-direction: column; align-items: stretch; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header>
+  <div class="logo-row">
+    <div class="logo-mark">
+      <svg viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm1 11H9V9h2v4zm0-6H9V5h2v2z"/></svg>
+    </div>
+    <h1>USHV Provider Request</h1>
+  </div>
+  <p class="subtitle">Add a new referring provider to eCW</p>
+</header>
+
+<!-- STEP 1: Enter NPI -->
+<div class="card" id="card-npi">
+  <div class="step-header">
+    <div class="step-num" id="num1">1</div>
+    <div>
+      <div class="step-title">Enter NPI number</div>
+      <div class="step-desc">The tool will look up all provider details automatically</div>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label>NPI number</label>
+    <div class="npi-row">
+      <input type="text" id="f_npi" placeholder="e.g. 1750123089" maxlength="10"
+        oninput="this.value=this.value.replace(/\D/g,'')"
+        onkeydown="if(event.key==='Enter') lookupNPI()">
+      <button class="btn btn-primary" id="btn-lookup" onclick="lookupNPI()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Look up
+      </button>
+    </div>
+  </div>
+
+  <div class="status" id="status-npi"></div>
+</div>
+
+<!-- STEP 2: Verify provider info -->
+<div class="card locked" id="card-fields">
+  <div class="step-header">
+    <div class="step-num" id="num2">2</div>
+    <div>
+      <div class="step-title">Verify provider info</div>
+      <div class="step-desc">Pulled from the NPI Registry — edit anything that looks wrong</div>
+    </div>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-group">
+      <label>First name</label>
+      <input type="text" id="f_first" placeholder="—">
+    </div>
+    <div class="field-group">
+      <label>Last name</label>
+      <input type="text" id="f_last" placeholder="—">
+    </div>
+    <div class="field-group">
+      <label>Phone number</label>
+      <input type="text" id="f_phone" placeholder="Not listed — enter manually">
+    </div>
+    <div class="field-group">
+      <label>Fax number</label>
+      <input type="text" id="f_fax" placeholder="Not listed — enter manually">
+    </div>
+  </div>
+  <div class="field-group">
+    <label>Specialty</label>
+    <input type="text" id="f_specialty" placeholder="—">
+  </div>
+  <div class="field-group">
+    <label>Address (for reference)</label>
+    <input type="text" id="f_address" placeholder="—">
+  </div>
+
+  <div class="status" id="status-fields"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="buildEmail()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+      Draft email
+    </button>
+  </div>
+</div>
+
+<!-- STEP 3: Review & send -->
+<div class="card locked" id="card-email">
+  <div class="step-header">
+    <div class="step-num" id="num3">3</div>
+    <div>
+      <div class="step-title">Review and send</div>
+      <div class="step-desc">Confirm everything looks right, then send</div>
+    </div>
+  </div>
+
+  <div class="email-meta"><span class="email-meta-label">To</span><span class="email-meta-val">emrsupport@usheartandvascular.com</span></div>
+  <div class="email-meta"><span class="email-meta-label">From</span><span class="email-meta-val">austin.gentle.valerie@gmail.com</span></div>
+  <div class="email-meta"><span class="email-meta-label">Subject</span><span class="email-meta-val">add referring provider please</span></div>
+
+  <div class="divider"></div>
+
+  <div class="field-group">
+    <label>Message — edit if needed</label>
+    <textarea id="email-body"></textarea>
+  </div>
+
+  <div class="oauth-note">
+    <strong>First time?</strong> Clicking send will open a Google sign-in window. Sign in as <strong>austin.gentle.valerie@gmail.com</strong> and allow access. After that it sends automatically.
+  </div>
+
+  <div class="status" id="status-email"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-success" id="btn-send" onclick="sendEmail()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Send email
+    </button>
+    <button class="btn btn-secondary" onclick="resetTool()">Start over</button>
+  </div>
+</div>
+
+<footer>USHV Ops · Provider Request Tool · Internal use only</footer>
+
+<!-- Google OAuth -->
+<script src="https://accounts.google.com/gsi/client"></script>
+
+<script>
+// ── CONFIG — only one thing to fill in ──────────────────────────────────────
+const GMAIL_CLIENT_ID = 'YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE';
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
+let tokenClient;
+let accessToken = null;
+
+window.onload = () => {
+  if (typeof google !== 'undefined') {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GMAIL_CLIENT_ID,
+      scope: GMAIL_SCOPE,
+      callback: (resp) => {
+        if (resp.error) { showStatus('status-email', 'error', 'Google sign-in failed: ' + resp.error); return; }
+        accessToken = resp.access_token;
+        doSendEmail();
+      }
+    });
+  }
+};
+
+// ── Step 1: NPI Registry lookup (free, no API key needed) ───────────────────
+async function lookupNPI() {
+  const npi = document.getElementById('f_npi').value.trim();
+  const btn = document.getElementById('btn-lookup');
+  if (!npi || npi.length !== 10) {
+    showStatus('status-npi', 'error', 'Please enter a valid 10-digit NPI number.');
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Looking up…';
+  showStatus('status-npi', 'info', 'Querying the NPI Registry…');
+
+  try {
+    const url = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&enumeration_type=&taxonomy_description=&name_purpose=&first_name=&use_first_name_alias=&last_name=&organization_name=&address_purpose=&city=&state=&postal_code=&country_code=&limit=1&skip=&pretty=&version=2.1`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Registry unreachable');
+    const data = await res.json();
+
+    if (!data.results || data.results.length === 0) {
+      throw new Error('No provider found for that NPI.');
+    }
+
+    const r = data.results[0];
+    const basic = r.basic || {};
+    const taxonomies = r.taxonomies || [];
+    const addresses = r.addresses || [];
+
+    // Name — individual vs organization
+    let firstName = '', lastName = '';
+    if (basic.first_name) {
+      firstName = basic.first_name;
+      lastName  = basic.last_name || '';
+    } else if (basic.organization_name) {
+      firstName = basic.organization_name;
+      lastName  = '';
+    }
+
+    // Specialty from primary taxonomy
+    const primaryTax = taxonomies.find(t => t.primary) || taxonomies[0] || {};
+    const specialty = primaryTax.desc || '';
+
+    // Address — prefer LOCATION type
+    const addr = addresses.find(a => a.address_purpose === 'LOCATION') || addresses[0] || {};
+    const phone = formatPhone(addr.telephone_number || '');
+    const fax   = formatPhone(addr.fax_number || '');
+    const addressStr = [addr.address_1, addr.city, addr.state, addr.postal_code].filter(Boolean).join(', ');
+
+    document.getElementById('f_first').value    = toTitleCase(firstName);
+    document.getElementById('f_last').value     = toTitleCase(lastName);
+    document.getElementById('f_phone').value    = phone;
+    document.getElementById('f_fax').value      = fax;
+    document.getElementById('f_specialty').value = specialty;
+    document.getElementById('f_address').value  = addressStr;
+
+    unlock('card-fields', 'num1');
+
+    const missing = [];
+    if (!phone) missing.push('phone');
+    if (!fax)   missing.push('fax');
+    const msg = missing.length
+      ? `Provider found. ${missing.join(' and ')} not listed — enter manually below.`
+      : 'Provider found — all contact info loaded.';
+    showStatus('status-npi', missing.length ? 'info' : 'success', msg);
+
+    btn.innerHTML = '✓ Found';
+    document.getElementById('card-fields').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(err) {
+    showStatus('status-npi', 'error', err.message || 'Lookup failed — check the NPI and try again.');
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg> Look up';
+  }
+}
+
+// ── Step 2: Build email draft ────────────────────────────────────────────────
+function buildEmail() {
+  const first = document.getElementById('f_first').value.trim();
+  const last  = document.getElementById('f_last').value.trim();
+  const npi   = document.getElementById('f_npi').value.trim();
+  const phone = document.getElementById('f_phone').value.trim() || '(not listed — please add)';
+  const fax   = document.getElementById('f_fax').value.trim()   || '(not listed — please add)';
+
+  if (!first && !last) {
+    showStatus('status-fields', 'error', 'Please fill in at least the provider name before drafting.');
+    return;
+  }
+
+  const body =
+`Hello, I would like to create a new referring provider in eCW please.
+
+Provider First Name: ${first}
+Provider Last Name: ${last}
+Phone number: ${phone}
+Fax number: ${fax}
+NPI number: ${npi}
+
+Please let me know if you need anything else from me, thank you so much!
+
+Best,
+Austin Gentle`;
+
+  document.getElementById('email-body').value = body;
+  unlock('card-email', 'num2');
+  document.getElementById('card-email').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Step 3: Send via Gmail API ───────────────────────────────────────────────
+function sendEmail() {
+  if (!accessToken) {
+    tokenClient.requestAccessToken({ hint: 'austin.gentle.valerie@gmail.com' });
+  } else {
+    doSendEmail();
+  }
+}
+
+async function doSendEmail() {
+  const btn = document.getElementById('btn-send');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending…';
+  showStatus('status-email', 'info', 'Sending via Gmail…');
+
+  const to      = 'emrsupport@usheartandvascular.com';
+  const subject = 'add referring provider please';
+  const body    = document.getElementById('email-body').value;
+  const raw     = makeEmail(to, subject, body);
+
+  try {
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Send failed');
+    }
+    showStatus('status-email', 'success', 'Email sent to emrsupport@usheartandvascular.com.');
+    btn.innerHTML = '✓ Sent';
+    btn.classList.remove('btn-success'); btn.classList.add('btn-secondary');
+    document.getElementById('num3').classList.add('done');
+    document.getElementById('num3').textContent = '✓';
+  } catch(err) {
+    showStatus('status-email', 'error', 'Failed to send: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = '↗ Retry send';
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function makeEmail(to, subject, body) {
+  const msg = [`To: ${to}`, `Subject: ${subject}`, 'Content-Type: text/plain; charset=utf-8', '', body].join('\r\n');
+  return btoa(unescape(encodeURIComponent(msg))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+function formatPhone(raw) {
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 10) return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+  if (digits.length === 11 && digits[0] === '1') return `${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`;
+  return raw;
+}
+
+function toTitleCase(str) {
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function showStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'status show ' + type;
+  el.innerHTML = (type === 'info' ? '<span class="spinner"></span>' : '') + msg;
+}
+
+function unlock(cardId, numId) {
+  document.getElementById(cardId).classList.remove('locked');
+  const num = document.getElementById(numId);
+  num.classList.add('done');
+  num.textContent = '✓';
+}
+
+function resetTool() { location.reload(); }
+</script>
+</body>
+</html>
